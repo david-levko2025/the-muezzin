@@ -1,6 +1,6 @@
 import os 
 import asyncio
-from uuid import uuid4 
+import uuid  
 
 from share.core.config import settings
 from share.kafka.kafka_producer import MenagesProducer  
@@ -28,7 +28,7 @@ class Manager:
                 file_metadata = self.handle_file.add_metadata()
 
                 file_metadata["path"] = absulut_path 
-                file_metadata['id'] = str(uuid4())
+                file_metadata['id'] = str(uuid.uuid5(uuid.NAMESPACE_DNS,i))
                 file_metadata['filename'] = i
 
                 await self.producer.send_messege(file_metadata)
