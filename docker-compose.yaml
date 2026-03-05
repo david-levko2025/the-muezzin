@@ -1,0 +1,94 @@
+version: "3.8"
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  kafka:
+    image: confluentinc/cp-kafka:7.8.3
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_KRAFT_MODE: "true"
+      CLUSTER_ID: "1L6g7nGhU-eAKfL--X25wo"
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+    volumes:
+      - kafka-kraft:/var/lib/kafka/data
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - elastic-data:/usr/share/elasticsearch/data
+
+  metadata-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: metadata-service
+    container_name: metadata_service
+    depends_on:
+      - mongodb
+      - kafka
+    ports:
+      - "8000:8000"
+    environment:
+      - BOOTSTRAP_SERVERS=kafka:9092
+    volumes:
+      - ./data/podcasts:/data/podcasts
+
+  information-processing:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: information-processing
+    container_name: information_processing
+    depends_on:
+      - elasticsearch
+      - kafka
+    ports:
+      - "8001:8000"
+    environment:
+      - BOOTSTRAP_SERVERS=kafka:9092
+      - ELASTIC_URL=http://elasticsearch:9200
+
+  mongo-loader:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: mongo-loader
+    container_name: mongo_loader
+    depends_on:
+      - mongodb
+      - kafka
+    ports:
+      - "8002:8000"
+    environment:
+      - BOOTSTRAP_SERVERS=kafka:9092
+      - MONGODB_URL=mongodb://mongodb:27017
+    volumes:
+      - ./data/podcasts:/data/podcasts
+
+volumes:
+  kafka-kraft:
+  mongo-data:
+  elastic-data:
