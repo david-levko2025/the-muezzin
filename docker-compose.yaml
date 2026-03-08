@@ -87,7 +87,22 @@ services:
       - MONGODB_URL=mongodb://mongodb:27017
     volumes:
       - ./data/podcasts:/data/podcasts
-
+  stt-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: stt-engine
+    container_name: stt_engine
+    depends_on:
+      - mongodb
+      - elasticsearch
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017
+      - ELASTIC_URL=http://elasticsearch:9200
+      - MONGO_DB=the_muezzin
+      - ELASTIC_INDEX_NAME=podcasts
+    volumes:
+      - .:/app
 volumes:
   kafka-kraft:
   mongo-data:

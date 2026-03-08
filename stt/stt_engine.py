@@ -1,19 +1,14 @@
 import speech_recognition as sr
+r = sr.Recognizer()
+from pymongo import MongoClient
+from elasticsearch import Elasticsearch
+import gridfs
+import tempfile
+import os
 
 from share.core.config import settings
 from share.log.logs import Logger
-
 logger = Logger.get_logger()
-r = sr.Recognizer()
-
-import gridfs
-import tempfile
-
-
-from pymongo import MongoClient
-from elasticsearch import Elasticsearch
-
-
 
 
 class PodcastTranscriber:
@@ -26,23 +21,27 @@ class PodcastTranscriber:
         self.recognizer = sr.Recognizer()
 
     def transcribe_audio(self, audio_bytes):
-        with tempfile.NamedTemporaryFile(suffix=".wav") as f:
+        with tempfile.NamedTemporaryFile(suffix=".wav",delete=False) as f:
             f.write(audio_bytes)
-            f.flush()
-
-            with sr.AudioFile(f.name) as source:
+            temp_path = f.name
+        try:
+            with sr.AudioFile(temp_path) as source:
                 audio = self.recognizer.record(source)
 
-        try:
             return self.recognizer.recognize_google(audio)  # type: ignore
 
         except sr.UnknownValueError:
             logger.warning("could not understand audio")
             return ""
-
+        except sr.RequestError as e:
+            logger.error(f"Error connecting to Google API: {e}")
+            return ""
         except Exception as e:
             logger.error(f"STT error: {e}")
             return ""
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
 
     def update_elasticsearch(self, file_id, transcript):
 
@@ -64,13 +63,12 @@ class PodcastTranscriber:
         audio_bytes = grid_out.read()
 
         transcript = self.transcribe_audio(audio_bytes)
-
+        logger.info(f"the podcasts:{file_id} and the info:\n{transcript}")
         self.update_elasticsearch(file_id, transcript)
 
         logger.info(f"finished {file_id}")
 
     def process_all_podcasts(self):
-
         for file_doc in self.db.fs.files.find():
 
             try:

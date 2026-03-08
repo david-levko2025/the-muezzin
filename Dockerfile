@@ -23,3 +23,11 @@ FROM base AS information-processing
 COPY ./share ./share/
 COPY process_info/ ./process_info
 CMD ["python", "-m", "process_info.main" ]
+
+FROM base AS stt-engine
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+COPY ./share ./share/
+COPY stt/ ./stt
+CMD ["python", "-m", "stt.main.py"]
