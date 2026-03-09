@@ -1,6 +1,6 @@
 from confluent_kafka import Consumer 
 import json
-# import logging 
+import asyncio
 
 class MenagesConsumer:
     def __init__(self, bootstrap_servers: str, topics: list, group_id: str):
@@ -18,16 +18,20 @@ class MenagesConsumer:
         print(f"Consumer started. Listening to topics: {self.topics}...")
         try:
             while True:
-                msg = self.consumer.poll(1.0) 
-                if msg is None: continue 
+                print("DEBUG: Consumer is polling for messages...")
+                msg = await asyncio.to_thread(self.consumer.poll,1.0) 
+                if msg is None:
+                    await asyncio.sleep(0.1)
+                    continue
+
                 if msg.error():
-                    # logging.error(f"Consumer error {msg.error}") 
                     print(f"Consumer error {msg.error}") 
                     continue 
                 try:
                     row_data = msg.value().decode('utf-8')  # type: ignore 
                     data = json.loads(row_data)  
-                    print(f"Message received from topic {msg.topic()}: {data.get('filename', 'unknown file')}")
+                    print(f"--- GOT MESSAGE: {data.get('filename')} ---")
+                    # print(f"Message received from topic {msg.topic()}: {data.get('filename', 'unknown file')}")
 
                     await callback(data)
                 

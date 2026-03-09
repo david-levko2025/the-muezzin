@@ -20,14 +20,11 @@ COPY mongo/ ./mongo
 CMD ["python", "-m", "mongo.main" ]
 
 FROM base AS information-processing
-COPY ./share ./share/
-COPY process_info/ ./process_info
+COPY ./share /app/share
+COPY process_info/ /app/process_info
 CMD ["python", "-m", "process_info.main" ]
 
-FROM base AS stt-engine
-RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
+FROM base AS transcription
 COPY ./share ./share/
-COPY stt/ ./stt
-CMD ["python", "-m", "stt.main.py"]
+COPY transcription/ ./transcription
+CMD ["python", "-m", "transcription.main"]

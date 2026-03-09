@@ -35,7 +35,7 @@ class Manager:
                 logger.info(f"the message send successfully,\n file's metadata: {file_metadata} \n topic: {self.metadata_topic}")
 
         except FileNotFoundError as f:
-            print(f)
+            logger.error(f"the file {f} not exist")
         finally:
             self.producer.close()
         

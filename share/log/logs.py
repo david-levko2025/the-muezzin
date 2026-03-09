@@ -11,7 +11,7 @@ class Logger:
     def get_logger(
         cls, name=settings.LOGER_NAME, 
         es_host=settings.ELASTIC_URL,
-        index=settings.ELASTIC_INDEX_NAME, 
+        index=settings.ELASTIC_INDEX_LOGS, 
         level=logging.DEBUG
     ):
         if cls._logger:
